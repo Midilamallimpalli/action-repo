@@ -1,0 +1,34 @@
+name: Webhook Trigger
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  trigger-webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          EVENT_TYPE: ${{ github.event_name }}
+          AUTHOR: ${{ github.actor }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          REF: ${{ github.ref }}
+        run: |
+          TO_BRANCH="$REF"
+          FROM_BRANCH="$HEAD_REF"
+          if [ "$EVENT_TYPE" == "pull_request" ]; then
+            TO_BRANCH="$BASE_REF"
+          fi
+          curl -X POST "$WEBHOOK_URL" \
+          -H "Content-Type: application/json" \
+          -d '{
+              "event": "'"$EVENT_TYPE"'",
+              "author": "'"$AUTHOR"'",
+              "from_branch": "'"$FROM_BRANCH"'",
+              "to_branch": "'"$TO_BRANCH"'",
+              "timestamp": "'"$(date -u +'%d %B %Y - %I:%M %p UTC')"'"
+          }'
